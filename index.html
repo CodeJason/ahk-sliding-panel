@@ -1,0 +1,27 @@
+<html>
+<head>
+	<script src="ahk-sliding-panel.js"></script>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+	<div id="left-panel">
+		<button type="button" onclick="toggle()">Close Menu</button>
+	</div>
+	<div id="right-panel">
+	
+	</div>
+	<button type="button" onclick="toggle()">Open Menu</button>
+	<script>
+		var menu = new ahk_slideout({
+			id:"left-panel",
+			side:"right",
+			width:"300px",
+			slide_time:"0.3"
+		});
+		function toggle(){
+			menu.toggleMenu();
+		}
+		console.log(menu);
+	</script>
+</body>
+</html>
