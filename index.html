@@ -4,24 +4,35 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-	<div id="left-panel">
-		<button type="button" onclick="toggle()">Close Menu</button>
+	<div id="left-panel" style="background:red">
+		<button type="button" onclick="toggleLeft()">Close Menu</button>
 	</div>
-	<div id="right-panel">
-	
+	<div id="right-panel" style="background:blue">
+		<button type="button" onclick="toggleRight()">Close Menu</button>
 	</div>
-	<button type="button" onclick="toggle()">Open Menu</button>
+	<button type="button" onclick="toggleLeft()">Open Left Menu</button><br/><br/>
+	<button type="button" onclick="toggleRight()">Open Right Menu</button>
 	<script>
-		var menu = new ahk_slideout({
+		
+		function toggleLeft(){
+			leftMenu.toggleMenu();
+		}
+		var leftMenu = new ahk_slideout({
 			id:"left-panel",
-			side:"right",
-			width:"300px",
+			side:"left",
+			width:"50%",
 			slide_time:"0.3"
 		});
-		function toggle(){
-			menu.toggleMenu();
-		}
-		console.log(menu);
+		var rightMenu = new ahk_slideout({
+			id:"right-panel",
+			side:"right",
+			width:"50%",
+			slide_time:"0.3"
+		});
+		
+		function toggleRight(){
+			rightMenu.toggleMenu();
+		}		
 	</script>
 </body>
 </html>

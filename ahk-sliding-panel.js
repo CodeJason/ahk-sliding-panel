@@ -16,10 +16,8 @@ function ahk_slideout(info){
 	var initialPanelStyles = {
 		position:"fixed",
 		top:"0",
-		bottom:"0",
-		//display:"none",	
-		overflow:"auto",
-		background:"red"
+		bottom:"0",		
+		overflow:"auto"		
 	};
 	
 	//default width
@@ -110,12 +108,12 @@ function ahk_slideout(info){
 		
 		applyStyles(initialPanelStyles);
 		
-		window.onload = function(){
-			console.log("setting up the menu");
-			window.addEventListener("touchstart", touchStart);
-			window.addEventListener("touchmove", touchDrag);
-			window.addEventListener("touchend", touchEnd);
-		};
+		window.addEventListener("load", function(){
+			window.addEventListener("touchstart", touchStart, false);
+			window.addEventListener("touchmove", touchDrag, false);
+			window.addEventListener("touchend", touchEnd, false);
+		});
+		
 		this.toggleMenu = function(){
 			if (left){
 				if (slideOut){
@@ -141,8 +139,7 @@ function ahk_slideout(info){
 	var lastTouch;
 	var dragOffset = undefined;
 	
-	function touchStart(event){
-		console.log("start");
+	function touchStart(event){		
 		if (!dragging && !slideOut){			
 			var x = event.touches[0].pageX;
 			var within = false;			
@@ -158,22 +155,34 @@ function ahk_slideout(info){
 				}
 			}
 			if (within){
-				console.log("within")
+				//console.log("within")
 				dragging = true;
 				panel.style.transition = "none";
 				setPosition(x);
 			}
 			//console.log("start", x);
 		}
-		else if (!dragging && slideOut){
-			dragging = true;
-			panel.style.transition = "none";
+		else if (!dragging && slideOut){						
 			var x = event.touches[0].pageX;
-			setPosition(x);
+			if (left && x > panel.offsetWidth){				
+				panel.style.left = initialPanelStyles.left;
+				slideOut = false;						
+			}
+			else if (!left && window.innerWidth-x > panel.offsetWidth){
+				panel.style.right = initialPanelStyles.right;
+				slideOut = false;				
+			}
+			else{
+				dragging = true;
+				panel.style.transition = "none";
+				dragOffset = x;
+				setPosition(x);				
+			}
+			
 		}
 	}
 	function touchDrag(event){		
-		console.log("drag");
+		//console.log("drag");
 		if (dragging){
 			var x = event.touches[0].pageX;
 			if (left && x <= panel.offsetWidth || !left && window.innerWidth-x <= panel.offsetWidth){				
@@ -182,7 +191,7 @@ function ahk_slideout(info){
 		}
 	}
 	function touchEnd(){	
-		console.log("end");
+		//console.log("end");
 		if (dragging){
 			panel.style.transition = initialPanelStyles.transition;
 			//figure out if over half way
@@ -207,17 +216,28 @@ function ahk_slideout(info){
 				}
 			}			
 			dragging = false;
+			dragOffset = undefined;
 		}
 	}
 	
 	function setPosition(x){
+		var wWidth = window.innerWidth;
+		if (dragOffset){
+			if (left){
+				x = panel.offsetWidth - (dragOffset - x);
+			}
+			else{			
+				x = (wWidth-panel.offsetWidth) + (x-dragOffset);				
+			}
+		}		
+		
 		if (left){
 			panel.style.left = "-" + (panel.offsetWidth - x) +"px";
 		}
-		else{
-			var wWidth = window.innerWidth;
+		else{				
 			panel.style.right = "-" + (panel.offsetWidth - (wWidth-x)) + "px";
 		}
 		lastTouch = x;
+		
 	}
 }
