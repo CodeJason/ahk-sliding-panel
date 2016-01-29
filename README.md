@@ -1,9 +1,15 @@
 ## ahk sliding panel
 
+######A small javascript library that lets you have touch responsive menu panels on a mobile browser
+
 ###Live demo [here](http://www.allenhashkey.com/wp-content/uploads/2016/01/index.html)
 
+###### Note - must be on a mobile browser or touch enabled mobile emulator
+
 ### 1 Simply download, save and import the script onto your webpage: (min or normal)
+```
 <script src="ahk-sliding-panel.js"></script>
+```
 
 ### 2 Create a html element to be your panel:
 ```
