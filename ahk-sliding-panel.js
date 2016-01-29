@@ -29,14 +29,34 @@ function ahk_slideout(info){
 	//z-index
 	var z_index = "999";
 	//touch boundary
-	var touch_boundary = 50
+	var touch_boundary = 100
 	
+	//applies the initial styles to the panel
 	function applyStyles(styles){
 		for(style in styles){
 			panel.style[style] = styles[style];			
 		}
 	}	
+	function close(){
+		if (left){
+			panel.style.left = initialPanelStyles.left;
+		}
+		else{
+			panel.style.right = initialPanelStyles.right;
+		}
+		slideOut = false;
+	}
+	function open(){
+		if (left){
+			panel.style.left = 0;
+		}
+		else{
+			panel.style.right = 0;				
+		}
+		slideOut = true;		
+	}
 	
+	//critical checking
 	if (!info || !info.id){
 		console.error("ID of panel not set");
 	}
@@ -46,22 +66,12 @@ function ahk_slideout(info){
 		
 	if (!panel){
 		console.error("Could not get panel using id supplied");
-	}else{	
-		//set defaults
+	}
+	else{	
+		//set defaults and get items from info
 		
-		var panelID = info.id;
-		
-		//set ints for left and right - figure it would be faster than strings
-		var left = true;		
-		
-		function leftSide(){
-			return side == left;
-		}
-		function rightSide(){
-			return side == right;
-		}			
-		
-		//get items from info
+		//set left boolean rather than function
+		var left = true;					
 		
 		//check if setting right - already left
 		if (info.side && info.side == "right"){
@@ -81,10 +91,10 @@ function ahk_slideout(info){
 		}
 		//add
 		if (left){
-			initialPanelStyles.transition = "left " + slide_time + "s";
+			initialPanelStyles.transition = "left " + slide_time + "s ease";
 		}
 		else{
-			initialPanelStyles.transition = "right " + slide_time + "s";
+			initialPanelStyles.transition = "right " + slide_time + "s ease";
 		}
 		
 		//z-index
@@ -106,138 +116,198 @@ function ahk_slideout(info){
 			touch_boundary = info.touch_boundary;
 		}
 		
+		//add the styles to the panel
 		applyStyles(initialPanelStyles);
 		
+		//add the touch listeners on load
 		window.addEventListener("load", function(){
 			window.addEventListener("touchstart", touchStart, false);
 			window.addEventListener("touchmove", touchDrag, false);
 			window.addEventListener("touchend", touchEnd, false);
 		});
 		
+		//public functions
 		this.toggleMenu = function(){
-			if (left){
-				if (slideOut){
-					panel.style.left = initialPanelStyles.left;
-				}
-				else{
-					panel.style.left = 0;
-				}
+			if (slideOut){
+				this.closeMenu();
 			}
 			else{
-				if (slideOut){
-					panel.style.right = initialPanelStyles.right;
-				}
-				else{
-					panel.style.right = 0;					
-				}
-			}
-			slideOut = !slideOut;
+				this.openMenu();
+			}						
 		};	
+		
+		this.closeMenu = close;		
+		this.openMenu = open;
+				
 	}
 	
-	var dragging = false;
-	var lastTouch;
-	var dragOffset = undefined;
+	//variables needed for the drag ability
+	var dragging = false,		
+		dragOffset = undefined,	
+		offSetTouch, //the touch factored in with the drag offset
+		firstXTouch, //the x axis
+		firstYTouch, //y axis		
+		startTime,		
+		threshold = 50, //the distance needed for a swipe
+		allowedTime = 200, //the amount of time to do a swipe in
+		restraint = 100 //the vertical amount you cannot exceed for a horizontal swipe
 	
-	function touchStart(event){		
-		if (!dragging && !slideOut){			
-			var x = event.touches[0].pageX;
-			var within = false;			
-			if (left){
-				if (x <= touch_boundary){
-					within = true;
-				}
-			}
-			else{
-				var width = window.innerWidth;
-				if (x >= width-touch_boundary){
-					within = true;
-				}
-			}
-			if (within){
-				//console.log("within")
-				dragging = true;
-				panel.style.transition = "none";
-				setPosition(x);
-			}
-			//console.log("start", x);
+	function touchStart(event){				
+		//grab items
+		var x = event.touches[0].pageX;
+		
+		firstXTouch = x;
+		firstYTouch = event.touches[0].pageY;
+		startTime = new Date().getTime();
+		
+		//check within the boundary for touches
+		var within = false;			
+		
+		//if closed
+		if (!slideOut){										
+			if (left && x <= touch_boundary){			
+				within = true;
+			}			
+			else if (!left && x >= window.innerWidth-touch_boundary){
+				within = true;
+			}			
 		}
-		else if (!dragging && slideOut){						
-			var x = event.touches[0].pageX;
-			if (left && x > panel.offsetWidth){				
+		
+		//if within boundary or open
+		if (within || slideOut){									
+			/*if (left && x > panel.offsetWidth){				
 				panel.style.left = initialPanelStyles.left;
 				slideOut = false;						
 			}
 			else if (!left && window.innerWidth-x > panel.offsetWidth){
 				panel.style.right = initialPanelStyles.right;
 				slideOut = false;				
-			}
-			else{
-				dragging = true;
-				panel.style.transition = "none";
-				dragOffset = x;
-				setPosition(x);				
-			}
+			}*/
+			
+			dragging = true;
+			panel.style.transition = "none";
+			dragOffset = x;
+			setPosition(x);				
 			
 		}
 	}
-	function touchDrag(event){		
-		//console.log("drag");
-		if (dragging){
-			var x = event.touches[0].pageX;
-			if (left && x <= panel.offsetWidth || !left && window.innerWidth-x <= panel.offsetWidth){				
-				setPosition(x);
-			}
+	
+	//when moving the touch
+	function touchDrag(event){	
+		//if in dragging mode, set the position of the menu
+		if (dragging){								
+			setPosition(event.touches[0].pageX);			
 		}
 	}
-	function touchEnd(){	
-		//console.log("end");
+	
+	//finger lifted up
+	function touchEnd(event){			
 		if (dragging){
+			//turn transition back on
 			panel.style.transition = initialPanelStyles.transition;
-			//figure out if over half way
-			if (left){
-				if (lastTouch >= panel.offsetWidth/2){
-					panel.style.left = 0;
-					slideOut = true;
+			
+			//detect if swiped left or right			
+			//get the amount of time from start to finish
+			var elapsedTime = new Date().getTime() - startTime;
+			var swipeLeft = false;
+			var swipeRight = false;
+			
+			if (elapsedTime <= allowedTime){
+				//get the distance between the first and last touches
+				var lastXTouch = event.changedTouches[0].pageX;
+				var lastYTouch = event.changedTouches[0].pageY;
+				var distX = lastXTouch - firstXTouch;
+				var distY = lastYTouch - firstYTouch;				
+								
+				//within the time, check distance and if diagonal
+				if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint){		
+					//right of left swipe
+					(distX < 0) ? swipeLeft = true : swipeRight = true;							
 				}
-				else{
-					panel.style.left = initialPanelStyles.left;
-					slideOut = false;
+			}						
+									
+			//if closed and swipe open - open
+			//if open and swipe close - close
+			//if open and touched on the outside of menu- close
+			//if over half way - open
+			//if not over half way - close								
+			
+			if (left){		
+				
+				if (slideOut && swipeLeft){
+					close()	
 				}
+				else if (!slideOut && swipeRight){
+					open()
+				}
+				else if (slideOut && event.changedTouches[0].pageX > offSetTouch){
+					close();
+				}
+				else if (offSetTouch >= panel.offsetWidth/2){
+					open();		
+				}
+				else if (offSetTouch < panel.offsetWidth/2){
+					close();
+				}				
+			
 			}
-			else{
-				if (window.innerWidth-lastTouch >= panel.offsetWidth/2){
-					panel.style.right = 0;
-					slideOut = true;
+			else{		
+
+				if (slideOut && swipeRight){
+					close()	
 				}
-				else{
-					panel.style.right = initialPanelStyles.right;
-					slideOut = false;
+				else if (!slideOut && swipeLeft){
+					open()
 				}
-			}			
+				else if (slideOut && event.changedTouches[0].pageX < offSetTouch){
+					close();
+				}
+				else if (window.innerWidth-offSetTouch >= panel.offsetWidth/2){
+					open();		
+				}
+				else if (window.innerWidth-offSetTouch < panel.offsetWidth/2){
+					close();
+				}				
+
+			}		
+			
+			//no longer dragging
 			dragging = false;
 			dragOffset = undefined;
 		}
 	}
 	
 	function setPosition(x){
-		var wWidth = window.innerWidth;
+		var wWidth = window.innerWidth;		
+		//calculate the simulated touch position given the original touch position
 		if (dragOffset){
 			if (left){
-				x = panel.offsetWidth - (dragOffset - x);
+				if (slideOut){
+					x = panel.offsetWidth - (dragOffset - x);
+				}
+				else{
+					x = x - dragOffset;
+				}
 			}
-			else{			
-				x = (wWidth-panel.offsetWidth) + (x-dragOffset);				
+			else{		
+				if (slideOut){
+					x = (wWidth-panel.offsetWidth) + (x-dragOffset);			
+				}
+				else{
+					x = wWidth-(dragOffset-x);
+				}
 			}
 		}		
 		
-		if (left){
+		//check if not fully extended
+		if (left && x <= panel.offsetWidth){
 			panel.style.left = "-" + (panel.offsetWidth - x) +"px";
+			offSetTouch = x;
 		}
-		else{				
+		else if (!left && window.innerWidth-x <= panel.offsetWidth){		
 			panel.style.right = "-" + (panel.offsetWidth - (wWidth-x)) + "px";
+			offSetTouch = x;
 		}
-		lastTouch = x;
 		
 	}
 }
